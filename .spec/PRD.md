@@ -54,7 +54,7 @@ The CellCheck PulsePod resolves this discrepancy. It replaces 4-hour bulk energy
 4. The system shall calculate split conformal prediction confidence intervals that achieve $\ge 95\%$ coverage on unseen cell test distributions.
 5. The system shall output an offline-verifiable, cryptographically signed W3C Verifiable Credential conforming to EU Battery Regulation 2023/1542.
 6. The system shall keep total bill-of-materials (BOM) cost below $\$31.00\text{ USD}$ using off-the-shelf COTS electronic components.
-7. The system shall ensure internal cell heating remains under $0.05^\circ\text{C}$ throughout the 60-second test to eliminate thermal runaway risks.
+7. The system shall bound test-induced adiabatic cell heating under $0.05^\circ\text{C}$ throughout the 60-second test sequence for nominal cells.
 
 ### 2.2 Non-Goals
 1. The system shall not predict historical cycle counts. The device measures current electrochemical health and safety properties only.
@@ -121,11 +121,18 @@ The instrument operates according to a strict four-phase timeline:
    - A $40\text{ kHz}$ ultrasonic transmitter drives a $5\text{-cycle}$ burst across the cell diameter; the receiver measures attenuation ($f_5$).
 
 4. **Phase 3: Micro-Charge Polarization & Passport Minting ($35.0\text{ s} \le t \le 60.0\text{ s}$)**
-   - The charge management switch enables a $200\text{ mA}$ constant current injection.
-   - The ADC computes the polarization slope ($dV/dt$) to determine active lithium acceptance ($f_7$).
+   - **Phase 3 Anomaly Interlock Gate:** The charge management switch enables $200\text{ mA}$ injection only if Phases 0, 1, and 2 complete with zero anomaly flags. If voltage is out of bounds, Ohmic drop exceeds $0.350\ \Omega$, vent temperature rises $> 0.8^\circ\text{C}$, or acoustic damping exceeds $20.0\text{ dB}$, firmware locks out Phase 3. The system skips micro-charge injection to prevent stimulating defect growth in compromised cells.
+   - If gated PASS, the ADC computes the polarization slope ($dV/dt$) to determine active lithium acceptance ($f_7$).
    - The ML inference engine evaluates the 8-dimensional feature vector $\mathbf{x} \in \mathbb{R}^8$.
    - Conformal uncertainty bounds determine the classification tier (`TIER_A`, `TIER_B`, `TIER_C_RECYCLE`, or `RETEST`).
    - The ESP32 signs the payload with its Ed25519 hardware key and outputs the W3C QR Battery Passport.
+
+### 4.2 Operational Containment & Safety Procedure
+1. **Fireproof Bench Setup:** Operators shall position the instrument inside or on top of a non-combustible, sand-lined or vermiculite-filled catch tray.
+2. **Operator Stance & PPE:** Operators must wear ANSI Z87.1 approved safety glasses and maintain a minimum safe standoff distance of 1.0 meter during active testing.
+3. **Immediate Defect Quarantine:** If a cell fails pre-screen ($V_{\text{ocv}} < 2.50\text{ V}$ or $> 4.25\text{ V}$) or exhibits thermal rise ($\Delta T \ge +0.8^\circ\text{C}$):
+   - The operator shall not re-arm or re-trigger the instrument.
+   - The operator shall extract the cell using insulated tongs and immediately deposit it into a heavy-gauge steel quarantine bucket filled with dry coarse sand.
 
 ---
 

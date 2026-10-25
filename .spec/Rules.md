@@ -26,6 +26,9 @@ All documentation, technical specifications, and user-facing copy must adhere to
    - Eliminate marketing adjectives, subjective superlatives, and buzzwords.
    - The following words are permanently banned from specification text:
      `revolutionary`, `game-changing`, `miraculous`, `lightning-fast`, `groundbreaking`, `unrivaled`, `world-first`, `disruptive`, `masterpiece`.
+   - **Banned Absolute Safety Terms:** Never use absolute safety claims. The following terms are permanently banned from safety statements:
+     `impossible`, `zero-hazard`, `zero hazard`, `cannot fail`, `cannot trigger`, `cannot induce`, `guaranteed`.
+   - Replace absolute statements with bounded operating limits, model assumptions, order-of-magnitude margins, and explicit residual risk disclosures.
    - Replace subjective claims with quantitative metrics, test conditions, and statistical boundaries.
 
 ---
@@ -52,6 +55,9 @@ The CellCheck architecture enforces the following invariants:
 │         sensor polling must utilize hardware timers and non-blocking state flags.      │
 │ RULE 7: Never store unencrypted private signing keys in companion software. Hardware   │
 │         attestation signatures must originate inside the ESP32 secure eFuse subsystem. │
+│ RULE 8: Never make absolute safety claims (such as "zero-hazard" or "impossible to     │
+│         trigger thermal runaway"). Safety cases must state model assumptions, thermal  │
+│         margins to self-heating onset, and residual risk from internal cell defects.   │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

@@ -19,7 +19,7 @@ In accordance with the **SYZYGY Spec-Driven Development (SDD) meta-framework**, 
 | Specification Layer | File Link | Focus & Engineering Deliverable | Primary Standard / Invariant |
 |---|---|---|---|
 | **PRD** | [`.spec/PRD.md`](.spec/PRD.md) | Product Requirements Document: Problem statement, personas, 60s functional breakdown, and quantitative success bounds. | ASD-STE100, IEC 61960-3 |
-| **TechSpec** | [`.spec/TechSpec.md`](.spec/TechSpec.md) | Technical Specification: FreeRTOS dual-core tasks, COTS BOM under $31, 4-wire Kelvin proof, zero-hazard thermal proof, TD-EIS math, and conformal formulation. | NIST FIPS 186-4, IEEE 802.15.1 |
+| **TechSpec** | [`.spec/TechSpec.md`](.spec/TechSpec.md) | Technical Specification: FreeRTOS dual-core tasks, COTS BOM under $31, 4-wire Kelvin proof, bounded thermal energy analysis, TD-EIS math, and conformal formulation. | NIST FIPS 186-4, IEEE 802.15.1 |
 | **Architecture** | [`.spec/Architecture.md`](.spec/Architecture.md) | System Architecture: Mermaid.js topology, 3-tier boundary matrix (Edge vs Host vs Cloud), cryptographic trust chain, and pin-accurate wiring. | System Design 101, W3C DID Core 1.0 |
 | **AppFlow** | [`.spec/AppFlow.md`](.spec/AppFlow.md) | Application Flow: End-to-end operator journey, deterministic FreeRTOS finite state machine (FSM), error mitigation, and recovery protocols. | UML 2.5 State Machines |
 | **Design** | [`.spec/Design.md`](.spec/Design.md) | Design Contract: OpenDesign design tokens, acrylic chassis ergonomics, 1.3" OLED layout, SVG web oscilloscope, and audio glissando formulas. | OpenDesign, IEC 60073 |
@@ -59,7 +59,7 @@ In accordance with the **SYZYGY Spec-Driven Development (SDD) meta-framework**, 
 
 ### Slide 03: The Solution: Edge TD-EIS (Time-Domain Spectroscopy)
 - **Physical Concept:** Rather than draining the entire electrochemical capacity over 4 hours, CellCheck measures the dynamic relaxation transient response to a microsecond-timed load perturbation.
-- **Electrochemical Bridge:** Replaces a $\$10,000$ AC frequency response analyzer (FRA) with high-speed time-domain current pulsing ($10\text{ Hz to }1\text{ kHz}$) and on-chip Fourier inversion to reconstruct the complex impedance arc ($Z' + jZ''$) in 60 seconds.
+- **Electrochemical Bridge:** Replaces a $\$10,000$ AC frequency response analyzer (FRA) with high-speed time-domain current pulsing ($10\text{ Hz to }500\text{ Hz}$, with $1\text{ kHz}$ as v2 roadmap goal) and on-chip Fourier inversion to reconstruct the complex impedance arc ($Z' + jZ''$) in 60 seconds.
 - **Acoustic & Thermal Cross-Validation:** Integrates a $40\text{ kHz}$ ultrasonic casing inspection disc (structural delamination/voids) and a Melexis MLX90614 infrared thermopile focused on the positive terminal crimp (micro-short Ohmic heating).
 
 ### Slide 04: The Open-Architecture Edge Hardware ($<\$31 BOM$)
@@ -70,10 +70,10 @@ In accordance with the **SYZYGY Spec-Driven Development (SDD) meta-framework**, 
 ### Slide 05: The 60-Second 4-Phase Protocol
 - **Deterministic Cycle Timing:**
   - $t = 0\text{ to }5\text{ s}$ ($P_0$): Rest baseline open-circuit voltage and ambient thermal acquisition ($V_{\text{ocv}}, T_{\text{amb}}$).
-  - $t = 5\text{ to }10\text{ s}$ ($P_1$): Controlled $0.75\text{ A}$ discharge pulse with $10\text{ Hz}/100\text{ Hz}/1\text{ kHz}$ PRBS chirp modulation.
+  - $t = 5\text{ to }10\text{ s}$ ($P_1$): Controlled $0.75\text{ A}$ discharge pulse with $10\text{ Hz}/100\text{ Hz}/500\text{ Hz}$ multi-tone modulation ($1\text{ kHz}$ v2 roadmap goal).
   - $t = 10\text{ to }35\text{ s}$ ($P_2$): Open-circuit relaxation curve capture; extraction of $R_{\text{ct}}$ and $C_{\text{dl}}$ time constants.
   - $t = 35\text{ to }60\text{ s}$ ($P_3$): $200\text{ mA}$ micro-charge polarization injection (TP4056 gated feed) to measure anode intercalation kinetics.
-- **Thermodynamic Proof:** Total energy injected into cell core during pulse $= 0.0997\text{ J}$. Maximum theoretical adiabatic core temperature rise $\Delta T_{\text{core}} = 0.00267^\circ\text{C}$. Thermal runaway is mathematically impossible.
+- **Bounded Test Energy:** Total energy injected into a healthy cell core during the 5 s discharge pulse is $0.157\text{ J}$ ($0.212\text{ J}$ across Phase 1 and Phase 3). Adiabatic core temperature rise is $0.0057^\circ\text{C}$, 4 orders of magnitude below the self-heating onset threshold ($80^\circ\text{C}$). Note: Defective cells containing internal shorts can self-heat from stored chemical energy.
 
 ### Slide 06: Unified 8-Dimensional Extended Feature Tensor
 - **Isomorphic Input:** Live ADC streams and multi-year laboratory cycling datasets (NASA Ames, Oxford, CALCE) map into the identical 8-dimensional feature vector $\mathbf{x} \in \mathbb{R}^8$:
@@ -174,7 +174,7 @@ Traditional AC impedance spectroscopy requires frequency response analyzers cost
                                 TD-EIS PERTURBATION PROTOCOL
    Load Current (A)
    1.0A ┼              ┌─┐   ┌─┐   ┌─┐
-        │              │ │   │ │   │ │  ◄── 1 kHz / 100 Hz PRBS Multi-Tone Chirp
+        │              │ │   │ │   │ │  ◄── 500 Hz / 100 Hz Multi-Tone Chirp (1 kHz v2 roadmap)
    0.8A ┼  ┌───────────┘ └───┘ └───┘ └───┐
         │  │ 5s DC BASE PULSE            │
    0.0A ┴──┴─────────────────────────────┴───────────────────────────────────► Time (s)
@@ -182,10 +182,10 @@ Traditional AC impedance spectroscopy requires frequency response analyzers cost
 ```
 
 1. **Step Perturbation:** At $t = 5.000\text{ s}$, the Infineon IRLZ44N MOSFET turns on, drawing $I_{\text{pulse}} \approx 0.75\text{ A}$ through the $5.0\Omega$ non-inductive aluminum load.
-2. **Frequency Injection:** Between $t = 7.000\text{ s}$ and $t = 8.500\text{ s}$, the ESP32 hardware LEDC timer modulates the gate drive with a Pseudo-Random Binary Sequence (PRBS) composite waveform at $10\text{ Hz}, 100\text{ Hz}, 1\text{ kHz}$.
+2. **Frequency Injection:** Between $t = 7.000\text{ s}$ and $t = 8.500\text{ s}$, the ESP32 hardware LEDC timer modulates the gate drive with a composite multi-tone waveform at $10\text{ Hz}, 100\text{ Hz}, 500\text{ Hz}$ (with $1.0\text{ kHz}$ planned for v2 hardware with external simultaneous ADC).
 3. **Discrete Fourier Extraction:** The 16-bit INA226 ADC samples voltage $v[n]$ and current $i[n]$ synchronously. Core 0 computes the complex impedance:
    $$Z(\omega_k) = \frac{\mathcal{F}\{v[n]\}}{\mathcal{F}\{i[n]\}} = Z'(\omega_k) + j Z''(\omega_k)$$
-4. **Mini-Nyquist Plot Rendering:** The real and imaginary components at high ($1\text{ kHz}$), medium ($100\text{ Hz}$), and low ($10\text{ Hz}$) frequencies are plotted live as a Cole-Cole arc on the 1.3" OLED display, separating bulk electrolyte resistance ($R_0$) from interfacial charge-transfer resistance ($R_{\text{ct}}$).
+4. **Mini-Nyquist Plot Rendering:** The real and imaginary components at high ($500\text{ Hz}$), medium ($100\text{ Hz}$), and low ($10\text{ Hz}$) frequencies are plotted live as a Cole-Cole arc on the 1.3" OLED display, separating bulk electrolyte resistance ($R_0$) from interfacial charge-transfer resistance ($R_{\text{ct}}$). (Full $1\text{ kHz}$ high-frequency resolution is a v2 roadmap goal).
 
 ### 2. True 4-Wire Kelvin Universal Spring-Jaw Clamp
 To eliminate contact resistance errors ($20\text{ to }80\text{ m}\Omega$) across different battery sizes and surface oxidation states, CellCheck implements an isolated 4-wire Kelvin bridge:
@@ -256,14 +256,15 @@ Standard NTC thermistors glued to battery casings have a thermal response time c
 │ 7  │ Ultrasonic Pair       │ 40 kHz Piezo Ceramic Disc    │ 16mm     │ 1   │ 1.80      │
 │ 8  │ True Kelvin Clamp Jaws│ Isolated Dual-Contact Spring │ Custom   │ 1   │ 2.40      │
 │ 9  │ Reverse Polarity Gate │ Vishay IRF9540 P-MOSFET      │ TO-220   │ 1   │ 0.60      │
-│ 10 │ Galvanic Fuse         │ Littelfuse 218 2.5A Fast Cart│ 5x20mm   │ 1   │ 0.35      │
+│ 10 │ Galvanic Fuse         │ Littelfuse 216 2.5A (021602.5MXP)│ 5x20mm│ 1   │ 0.35 [TO VERIFY]│
 │ 11 │ Waveform Display      │ 1.3" I2C OLED (SH1106 128x64)│ Module   │ 1   │ 2.50      │
 │ 12 │ Master Arm Switch     │ Aircraft Toggle w/ Red Guard │ Panel    │ 1   │ 1.60      │
 │ 13 │ Emergency Stop        │ 22mm Latching Mushroom E-Stop│ Industrial│ 1  │ 1.90      │
 │ 14 │ Trigger Button        │ Sanwa-Style 30mm Arcade PB   │ Snap-In  │ 1   │ 0.85      │
 │ 15 │ Status Indicator      │ 5mm RGB Common-Cathode LED   │ Through  │ 1   │ 0.25      │
 │ 16 │ Piezo Buzzer          │ 5V Magnetic Buzzer / Piezo   │ Module   │ 1   │ 0.45      │
-│ 17 │ Enclosure & Screws    │ Laser-Cut Acrylic + Spacers  │ Chassis  │ 1   │ 3.50      │
+│ 17 │ Micro-Charge Module   │ TP4056 1A Linear Li-Ion (0.2A)│ Module   │ 1   │ 0.45 [TO VERIFY]│
+│ 18 │ Enclosure & Screws    │ Laser-Cut Acrylic + Spacers  │ Chassis  │ 1   │ 3.05      │
 ├────┴───────────────────────┴──────────────────────────────┴──────────┴─────┼───────────┤
 │    TOTAL PRODUCTION INSTRUMENT BOM COST                                    │ $30.10    │
 └────────────────────────────────────────────────────────────────────────────┴───────────┘
@@ -327,25 +328,31 @@ Standard NTC thermistors glued to battery casings have a thermal response time c
       [ KELVIN SENSE LEADS ] ───► Direct to INA226 Differential Voltage Sense Inputs
 ```
 
-### 3. Thermal, Joulean & Electrical Safety Budget: Mathematical Zero-Hazard Proof
+### 3. Thermal, Joulean & Electrical Safety Budget: Bounded Test-Energy Analysis & Safety Case
 
 #### A. Cell Core Thermal Dissipation Calculus
-Thermal runaway in lithium-ion cylindrical cells initiates only when internal core temperatures exceed separator melting thresholds ($T_{\text{runaway}} \ge 135^\circ\text{C}\text{ to }160^\circ\text{C}$).
+Self-accelerating exotherms in lithium-ion cells initiate when the Solid Electrolyte Interphase (SEI) decomposes ($T_{\text{onset}} \approx 80.0^\circ\text{C}\text{ to }90.0^\circ\text{C}$) [TO VERIFY: literature ARC onset range, e.g., Feng et al. 2018], well before separator melting thresholds ($135^\circ\text{C}\text{ to }160^\circ\text{C}$).
 
-Under CellCheck's 5-second Phase 1 load pulse:
-- Pulse Current: $I = \frac{V_{\text{cell}}}{R_{\text{load}} + R_{\text{internal}}} \approx \frac{3.80\text{ V}}{5.0\ \Omega + 0.035\ \Omega} = 0.755\text{ A}$
-- Internal Heat Generation Rate:
-  $$\dot{Q}_{\text{core}} = I^2 \cdot R_0 = (0.755\text{ A})^2 \times 0.035\ \Omega = 0.0199\text{ Watts}$$
-- Total Energy Injected into Cell Core over 5 seconds:
-  $$E_{\text{pulse}} = \int_{0}^{5} I^2 R_0 \, dt = 0.0199\text{ W} \times 5.0\text{ s} = \mathbf{0.0997\text{ Joules}}$$
+Heat dissipation within the cell during electrical testing follows the overpotential energy balance:
+$$\dot{Q}_{\text{cell}} = I(t) \cdot [V_{\text{ocv}}(t) - V(t)] \approx I^2 \cdot (R_0 + R_{\text{ct}})$$
 
-Assuming adiabatic conditions (zero thermal dissipation to the environment) for a standard $45.0\text{ g}$ cell ($C_p = 830\text{ J}/(\text{kg}\cdot^\circ\text{C})$):
-$$\Delta T_{\text{core}} = \frac{E_{\text{pulse}}}{m \cdot C_p} = \frac{0.0997\text{ J}}{0.045\text{ kg} \times 830\text{ J}/(\text{kg}\cdot^\circ\text{C})} = \mathbf{0.00267^\circ\text{C}}$$
+Across CellCheck's 60-second cycle:
+1. **Phase 1 Discharge Pulse ($5.0\text{ s}$ at $0.755\text{ A}$):**
+   - For a healthy cell ($R_0 = 0.035\ \Omega$, $R_{\text{ct}} = 0.020\ \Omega$):
+     $$\dot{Q}_{\text{P1}} = (0.755\text{ A})^2 \times 0.055\ \Omega = 0.0313\text{ Watts} \implies E_{\text{P1}} = 0.0313\text{ W} \times 5.0\text{ s} = \mathbf{0.1566\text{ Joules}}$$
+2. **Phase 3 Micro-Charge ($25.0\text{ s}$ at $0.200\text{ A}$ via TP4056):**
+   - Irreversible overpotential heating:
+     $$\dot{Q}_{\text{P3}} = (0.200\text{ A})^2 \times 0.055\ \Omega = 0.0022\text{ Watts} \implies E_{\text{P3}} = 0.0022\text{ W} \times 25.0\text{ s} = \mathbf{0.0550\text{ Joules}}$$
+3. **Total Injected Energy Across Full Cycle:**
+   $$E_{\text{total}} = E_{\text{P1}} + E_{\text{P3}} = 0.1566\text{ J} + 0.0550\text{ J} = \mathbf{0.2116\text{ Joules}}$$
 
-Even in an abusive test on a **severely degraded, dendrite-shorted cell** with an internal resistance 10 times higher ($R_0 = 0.350\ \Omega$):
-$$E_{\text{pulse, abusive}} = (0.755\text{ A})^2 \times 0.350\ \Omega \times 5.0\text{ s} = 0.997\text{ J} \implies \Delta T_{\text{core}} = \mathbf{0.0267^\circ\text{C}}$$
+Assuming adiabatic conditions (zero thermal dissipation to the environment) for a standard $45.0\text{ g}$ cell ($C_p = 830\text{ J}/(\text{kg}\cdot^\circ\text{C})$, $C_{\text{th}} = 37.35\text{ J/K}$):
+$$\Delta T_{\text{core}} = \frac{E_{\text{total}}}{C_{\text{th}}} = \frac{0.2116\text{ J}}{37.35\text{ J/K}} = \mathbf{0.00567^\circ\text{C}}$$
 
-*Conclusion: The internal core temperature rise is physically bounded below $0.03^\circ\text{C}$. The test cannot trigger thermal runaway.*
+For an aged, degraded cell with higher resistance ($R_0 = 0.350\ \Omega$, $R_{\text{ct}} = 0.150\ \Omega$):
+$$E_{\text{total, degraded}} = 1.261\text{ J} + 0.500\text{ J} = 1.761\text{ J} \implies \Delta T_{\text{core}} = \mathbf{0.0472^\circ\text{C}}$$
+
+*Conclusion: Under the stated assumptions, test-induced heating is 2 to 4 orders of magnitude below the self-heating onset temperature. This does not guarantee safety for cells with pre-existing internal defects.*
 
 #### B. Load Resistor Thermal Dissipation Margin
 - Peak Power in Resistor during pulse:
@@ -363,35 +370,44 @@ $$E_{\text{pulse, abusive}} = (0.755\text{ A})^2 \times 0.350\ \Omega \times 5.0
 [ BATTERY INSERTION ]
          │
          ▼
- 1. PRE-SCREEN VOLTAGE INTERLOCK (Software/Firmware Gate)
+ 1. PRE-SCREEN VOLTAGE INTERLOCK [Firmware-Dependent]
     Firmware samples open-circuit voltage during P0 (0–5s).
     If V_cell < 2.50V (copper dissolution/short risk) or V_cell > 4.25V:
-    System immediately locks out; Red strobe LED; refuses to fire load.
+    System immediately locks out; Red strobe LED; refuses to fire load or charge.
          │ PASS (2.50V ≤ V_cell ≤ 4.25V)
          ▼
- 2. REVERSE-POLARITY HARDWARE CLAMP (Vishay IRF9540 P-MOSFET)
-    Backwards cell forces Gate-Source junction positive. 
-    FET remains completely open; zero current flows into logic or load.
+ 2. REVERSE-POLARITY HARDWARE CLAMP [Hardware-Only]
+    Vishay IRF9540 P-MOSFET. Backwards cell forces Gate-Source junction positive. 
+    FET remains open; zero current flows into logic or load.
          │ PASS
          ▼
- 3. GALVANIC OVER-CURRENT PROTECTION (2.5A Fast Ceramic Fuse)
-    Clears in < 1.8 milliseconds if a dead-short or component latch-up occurs.
+ 3. GALVANIC OVER-CURRENT PROTECTION [Hardware-Only]
+    Littelfuse 216 2.5A Fast Ceramic Cartridge (021602.5MXP, 5x20mm). Mounted directly 
+    adjacent to positive clamp jaw. Protects wiring and electronics (does NOT protect 
+    against faults inside the cell). Clears prospective short-circuit fault currents:
+    - R_wiring = 0.05Ω (I_sc = 44.7A): clears in 1.4 to 3.0 ms [TO VERIFY: Littelfuse 216 curve]
+    - R_wiring = 0.10Ω (I_sc = 28.1A): clears in 3.4 to 6.0 ms [TO VERIFY: Littelfuse 216 curve]
+    - R_wiring = 0.20Ω (I_sc = 16.2A): clears in 10 to 50 ms [TO VERIFY: Littelfuse 216 curve]
+    (Note: 2.5A fuse does not clear at normal 0.755A pulse current).
          │ PASS
          ▼
- 4. PHYSICAL MASTER ARM & EMERGENCY STOP (Avionics Toggle + E-Stop)
-    Dual physical breaks in the IRLZ44N gate line. If E-Stop is struck,
-    gate line is mechanically disconnected and clamped to GND via 10kΩ resistor.
+ 4. PHYSICAL MASTER ARM & EMERGENCY STOP [Hardware-Only]
+    Avionics Toggle + 22mm Latching E-Stop. Dual physical breaks in the IRLZ44N gate line.
+    If E-Stop is struck, gate is mechanically disconnected and clamped to GND via 10kΩ pulldown.
          │ PASS
          ▼
- 5. CONTACTLESS IR CRIMP OVER-TEMPERATURE INTERRUPT (FreeRTOS Core 0 ISR)
-    MLX90614 checks positive vent crimp every 10ms.
-    If T_vent > 45.0°C or dT/dt > 1.2°C/s: Hardware pin GPIO18 is forced LOW in < 12 µs.
+ 5. CONTACTLESS IR CRIMP OVER-TEMPERATURE INTERRUPT [Firmware-Dependent]
+    MLX90614 polls positive vent crimp every 10ms over I2C (optical response time ~180ms).
+    Target requires matte-black dot (ε ≥ 0.95) to prevent bare metal emissivity error.
+    If T_vent > 45.0°C or dT/dt > 1.2°C/s: GPIO18 forced LOW (ISR latency < 12 µs once asserted).
          │ PASS
          ▼
- 6. WATCHDOG HEARTBEAT TIMER
+ 6. WATCHDOG HEARTBEAT TIMER [Firmware/Software-Dependent]
     Host computer must transmit rolling 32-bit heartbeat packet every 500ms.
     If laptop freezes or USB disconnects: ESP32 hardware watchdog disarms load.
 ```
+
+*Classification Note: Safety layers must be categorized as hardware-only or firmware-dependent. Firmware-dependent layers (1, 5, 6) rely on microcontroller clock, firmware tasks, and I2C bus health; they cannot be counted as independent safety layers under functional safety standards.*
 
 ---
 
@@ -587,6 +603,7 @@ Under European Union Regulation 2023/1542, all industrial and electric vehicle b
 | **R7** | **Model Misclassifies Borderline Cell** | High | Low | **Conformal Gating:** If prediction set size $|\mathcal{C}(\mathbf{x})| > 1$, model outputs honest `RETEST` flag. |
 | **R8** | **MOSFET Thermal Drift or Gate Sag** | Med | Med | **Infineon IRLZ44N Logic-Level Selection:** Fully saturated at $V_{\text{GS}} = 2.8\text{ V}$ ($R_{\text{DS(on)}} < 0.022\ \Omega$); 10W resistor absorbs $>98\%$ of heat. |
 | **R9** | **Cell Inserted Backwards by Operator** | High | Med | **Hardware P-MOSFET Polarity Clamp (IRF9540):** Reverse voltage locks FET open; zero current flows into logic. |
+| **R10** | **Pre-Existing Internal Defect (Micro-Short / Dendrite)** | High | Med | **Bounded Test Energy & Containment:** Test-induced heating is bounded ($<0.05^\circ\text{C}$ rise), but defective cells can self-heat from stored chemical energy ($\sim 33\text{ kJ}$). Pre-screen voltage lockout gates Phase 1; Phase 3 micro-charge strictly locks out on any anomaly. Tests operate in a fireproof enclosure with sand quarantine protocol. |
 
 ---
 
@@ -619,7 +636,7 @@ Under European Union Regulation 2023/1542, all industrial and electric vehicle b
 │ 2.5 kHz over standard I2C.    │ Standard 100 kHz I2C cannot     │ .spec/Architecture.md Section 1│
 │                               │ transfer 2.5 kHz frames. Bound  │                                │
 │                               │ I2C to 400 kHz Fast-mode with   │                                │
-│                               │ 140 µs conversion time + DMA.   │                                │
+│                               │ 140 µs conversion time + ALERT. │                                │
 ├───────────────────────────────┼─────────────────────────────────┼────────────────────────────────┤
 │ Narrative pitch and demo      │ FORMALIZED: Reframed into the   │ Executive Pitch Sequence       │
 │ scripts embedded inside       │ SIH Grand Finale Deck Structure │ .spec/Design.md Section 4      │

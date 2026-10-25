@@ -73,7 +73,7 @@ stateDiagram-v2
     state STATE_PHASE1_PULSE {
         [*] --> Load_Switch_ON: Close N-MOSFET (0.75A)
         Load_Switch_ON --> Calculate_R0: t = 5.020s (Instantaneous Step)
-        Calculate_R0 --> Modulate_Chirp: t = 7.000s (PRBS 10Hz/100Hz/1kHz)
+        Calculate_R0 --> Modulate_Chirp: t = 7.000s (Multi-tone 10Hz/100Hz/500Hz)
         Modulate_Chirp --> [*]: t = 10.000s (Open N-MOSFET)
     }
 
@@ -88,10 +88,12 @@ stateDiagram-v2
         Render_Cole_Cole --> [*]: t = 35.000s Completed
     }
 
-    STATE_PHASE2_RELAX --> STATE_PHASE3_CHARGE: t = 35.000s Normal Transition
+    STATE_PHASE2_RELAX --> STATE_PHASE3_CHARGE: t = 35.000s (Zero Anomaly Flags)
+    STATE_PHASE2_RELAX --> STATE_TRIP_LOCKOUT: Anomaly Detected (Thermal / Acoustic / Voltage)
 
     state STATE_PHASE3_CHARGE {
-        [*] --> Enable_TP4056: Inject 200 mA Micro-Charge
+        [*] --> Verify_Phase_Interlocks: Check P0-P2 Anomaly Flags
+        Verify_Phase_Interlocks --> Enable_TP4056: All Clean -> Assert GPIO27 (200 mA)
         Enable_TP4056 --> Compute_Polarization_Slope: Sample dV/dt (40s - 55s)
         Compute_Polarization_Slope --> Assemble_Feature_Vector: Vector x in R^8
         Assemble_Feature_Vector --> [*]: t = 60.000s Completed
@@ -129,7 +131,7 @@ stateDiagram-v2
 ├──────────────┼────────────────────────┼────────────────────────────────────────────────────────┤
 │ `ERR_T_VENT` │ MLX90614 T > 45.0°C or │ Core 0 hardware ISR forces GPIO18 LOW within 12 µs.    │
 │              │ dT/dt > 1.2°C/s        │ System trips latching lockout. Screen displays:        │
-│              │                        │ "THERMAL RUNAWAY PRE-CURSOR DETECTED — LOAD TRIPPED".  │
+│              │                        │ "VENT OVER-TEMPERATURE DETECTED — LOAD TRIPPED".       │
 │              │                        │ Action: Move cell immediately to sand-isolated bucket. │
 ├──────────────┼────────────────────────┼────────────────────────────────────────────────────────┤
 │ `ERR_CONTACT`│ Contact voltage noise  │ Savitzky-Golay filter flags non-monotonic noise jump.  │
@@ -145,3 +147,19 @@ stateDiagram-v2
 │              │                        │ Printer outputs yellow label with manual audit flag.   │
 └──────────────┴────────────────────────┴────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 4. Operational Safety & Quarantine Protocol
+
+1. **Fireproof Tray Setup:**
+   The operator shall place the PulsePod instrument inside a non-combustible catch tray. The tray must contain dry sand or vermiculite.
+
+2. **Safe Standoff Distance:**
+   The operator must maintain a safe distance of at least 1.0 meter during active pulsing and wear eye protection.
+
+3. **Phase 3 Micro-Charge Interlock:**
+   Firmware must verify that Phase 0 baseline voltage, Phase 1 Ohmic resistance, and Phase 2 relaxation/acoustic parameters exhibit zero anomalies. If any anomaly flag is set, firmware locks out Phase 3 (GPIO27 stays LOW). The instrument shall never charge a suspect cell.
+
+4. **Cell Rejection and Isolation:**
+   If a cell fails pre-screen or exhibits heating, the operator shall reject the cell. The operator shall use heat-resistant tongs to move the cell into a fireproof sand bucket. Never re-test a rejected cell.

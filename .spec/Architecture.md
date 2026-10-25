@@ -14,7 +14,7 @@ graph TD
     subgraph EdgeInstrument ["TIER 1: PHYSICAL EDGE INSTRUMENT (PulsePod)"]
         Cell["Cell Under Test (18650 / 21700 / 26650)"]
         Kelvin["4-Wire Kelvin Spring Clamp Interface"]
-        Fuse["Littelfuse 218 2.5A Fast Ceramic Fuse"]
+        Fuse["Littelfuse 216 2.5A Fast Ceramic Fuse (021602.5MXP)"]
         PFET["Vishay IRF9540 Reverse-Polarity P-MOSFET"]
         INA["TI INA226 16-Bit ADC + 0.05Ω Vishay Shunt"]
         LoadCircuit["IRLZ44N Logic N-MOSFET + 5.0Ω 10W Resistor"]
@@ -82,7 +82,7 @@ The system maintains strict boundaries across the compute tiers to avoid latency
 ┌───────────────────────────────┬───────────────────────────────┬───────────────────────────────┐
 │ TIER 1: ESP32 EDGE INSTRUMENT │ TIER 2: COMPANION CLIENT      │ TIER 3: CLOUD SERVICES        │
 ├───────────────────────────────┼───────────────────────────────┼───────────────────────────────┤
-│ • Synchronous 1.78 kHz ADC DMA│ • Savitzky-Golay FIR smooth   │ • W3C DID document anchor     │
+│ • 3.57 kHz INA226 ALERT ISR   │ • Savitzky-Golay FIR smooth   │ • W3C DID document anchor     │
 │ • Hardware safety trip ISR    │ • Two-point affine transfer   │ • Central audit log indexing  │
 │ • Local Cole-Cole calculation │ • Monotonic XGBoost traversal │ • Fleet valuation feed sync   │
 │ • Sound synthesis glissando   │ • Conformal p-value gate      │ • Automated model retrain     │
